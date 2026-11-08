@@ -3,35 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MedTad (เม็ดตัด)</title>
+    <title>MedTad V2 (เม็ดตัด)</title>
 
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="MedTad">
-    <meta name="application-name" content="MedTad">
-
+    <!-- 📱 โลโก้: ใช้ลิงก์เดียวกับ index เดิม (แก้ 3 จุดด้านล่าง + ในไฟล์ manifest.webmanifest) -->
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
     <link rel="icon" sizes="192x192" href="logo.png">
-    
-    <meta name="theme-color" id="theme-color-meta" content="#FFFFFF">
+    <meta name="theme-color" content="#0D1B2A">
 
-    <script>
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            document.getElementById('theme-color-meta').setAttribute('content', '#0D1B2A');
-        }
-    </script>
+    <!-- 📲 เปิดจากไอคอนหน้าโฮมแล้วเป็นแอปเต็มจอ (ไม่มีแถบ Safari) -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="MedTad">
 
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #FFFFFF; }
-        @media (display-mode: standalone) {
-            body, html { background-color: #0D1B2A; } /* พื้นหลังตอนโหลด PWA ให้เป็น Navy */
-        }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #F7F8FA; }
         iframe { width: 100%; height: 100%; border: none; display: block; }
     </style>
 </head>
 <body>
-    <iframe src="https://script.google.com/macros/s/AKfycbx3QwtvfLC5tKw6N7usrnX4DIuhHKbkX9AktAf0rVl9RIIBCaWD9yVMnDgI8PuXuq9U1A/exec"></iframe>
+    <iframe id="app" allow="clipboard-write"></iframe>
+
+    <script>
+        // 🔗 ลิงก์ Google Apps Script ของ V2 (ลงท้ายด้วย /exec)
+        var APP_URL = 'https://script.google.com/macros/s/AKfycbx9LrPGgIkhW6SJPkXiuLDsUKgxv4esUa8xr9IRUFGom9swMZQacj6mqYeUIaUEpwDV/exec';
+
+        document.getElementById('app').src = APP_URL;
+
+        // 👤 เก็บชื่อผู้ใช้ + วอร์ดที่ปักหมุดไว้ที่หน้านี้ (iOS ไม่ล้างเหมือนเก็บในแอป)
+        function load() {
+            try {
+                return {
+                    user: localStorage.getItem('medtad_user') || '',
+                    pins: JSON.parse(localStorage.getItem('medtad_pins') || '[]')
+                };
+            } catch (e) { return { user: '', pins: [] }; }
+        }
+        window.addEventListener('message', function (ev) {
+            // รับเฉพาะข้อความจากแอปของ Google Apps Script
+            if (!/\.googleusercontent\.com$|^https:\/\/script\.google\.com$/.test(ev.origin)) return;
+            var d = ev.data || {};
+            if (d.type === 'medtad:hello') {
+                var s = load();
+                ev.source.postMessage({ type: 'medtad:init', user: s.user, pins: s.pins }, ev.origin);
+            } else if (d.type === 'medtad:save') {
+                try {
+                    localStorage.setItem('medtad_user', String(d.user || '').slice(0, 30));
+                    localStorage.setItem('medtad_pins', JSON.stringify(Array.isArray(d.pins) ? d.pins.slice(0, 50) : []));
+                } catch (e) { /* ignore */ }
+            }
+        });
+    </script>
 </body>
 </html>
